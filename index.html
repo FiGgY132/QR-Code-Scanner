@@ -19,31 +19,29 @@
     <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
 
 <script>
-
-        const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR6zF-a_i25R8N3SpcQ1oF-lWTKxCo1hM3bFfV6M4rBq0K8TfPQuzFw3f_kE8wG8n_5k-qV8iWfWq8i/pub?gid=0&single=true&output=csv'; // This is your URL, I've put it here for you.
-
-        // This object will store our asset data: { "AssetID": "PDF_Link", ... }
+        // --- CONFIGURATION ---
+        const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR6zF-a_i25R8N3SpcQ1oF-lWTKxCo1hM3bFfV6M4rBq0K8TfPQuzFw3f_kE8wG8n_5k-qV8iWfWq8i/pub?gid=0&single=true&output=csv';
         const assetData = new Map();
-
         const statusMessageEl = document.getElementById('status-message');
+        const scannerEl = document.getElementById('qr-reader');
+        let scanner; // Will hold the scanner object
 
-        // Function to fetch and parse the CSV data from Google Sheets
+        // This function now returns 'true' on success and 'false' on failure
         async function loadAssetData() {
-            // Camera access requires HTTPS, which GitHub Pages provides. Let's check.
-            if (location.protocol !== 'https:') {
-                statusMessageEl.textContent = 'ERROR: Camera access requires a secure connection (HTTPS).';
-                statusMessageEl.style.color = 'red';
-                return;
-            }
-            
+            statusMessageEl.textContent = 'Connecting to asset database...';
             try {
                 const response = await fetch(GOOGLE_SHEET_CSV_URL);
+                if (!response.ok) {
+                    throw new Error(`Network response was not ok: ${response.statusText}`);
+                }
                 const csvData = await response.text();
                 
                 const rows = csvData.trim().split('\n').slice(1);
+                if (rows.length === 0) {
+                    throw new Error("CSV file is empty or has only a header.");
+                }
 
                 for (const row of rows) {
-                    // This handles cases where your other columns might have commas
                     const columns = row.split(',');
                     const assetId = columns[0];
                     const pdfLink = columns[1];
@@ -53,61 +51,66 @@
                     }
                 }
                 
-                console.log('Asset data loaded successfully:', assetData);
-                statusMessageEl.textContent = 'Ready to scan. Please grant camera permission.';
+                console.log(`Asset data loaded successfully. Found ${assetData.size} assets.`);
+                statusMessageEl.textContent = 'Database loaded. Starting camera...';
+                return true; // Indicate success
+
             } catch (error) {
                 console.error('Failed to load asset data:', error);
-                statusMessageEl.textContent = 'Error: Could not load asset data. Please check the URL and your internet connection.';
+                statusMessageEl.textContent = 'Error: Could not load asset database. Please check connection and refresh.';
                 statusMessageEl.style.color = 'red';
+                return false; // Indicate failure
             }
         }
 
-        // Function that runs when a QR code is successfully scanned
         function onScanSuccess(decodedText, decodedResult) {
             console.log(`Scan result: ${decodedText}`);
             
             if (assetData.has(decodedText)) {
                 const pdfUrl = assetData.get(decodedText);
                 
-                // We need to stop the scanner before redirecting. We access it from the global scope.
-                scanner.clear().catch(error => {
-                    console.error("Failed to clear html5QrcodeScanner.", error);
-                });
-
-                statusMessageEl.textContent = `Asset Found! Redirecting to PDF...`;
-                window.location.href = pdfUrl;
+                statusMessageEl.textContent = `Asset Found! Redirecting...`;
+                scanner.clear().catch(error => console.error("Failed to clear scanner.", error));
+                
+                // Redirect after a short delay to allow the user to see the message
+                setTimeout(() => {
+                    window.location.href = pdfUrl;
+                }, 500);
 
             } else {
-                statusMessageEl.textContent = `Error: Asset ID "${decodedText}" not found in the database.`;
+                statusMessageEl.textContent = `Asset ID "${decodedText}" not found. Please try again.`;
                 statusMessageEl.style.color = 'orange';
-
                 setTimeout(() => {
-                    statusMessageEl.textContent = 'Ready to scan. Please grant camera permission.';
+                    statusMessageEl.textContent = 'Ready to scan.';
                     statusMessageEl.style.color = '#333';
                 }, 3000);
             }
         }
         
-        function onScanFailure(error) {
-            // This is not a real error, just means no QR code was found in a frame.
+        // Main function to start the application
+        async function main() {
+            // First, await the data loading
+            const dataLoaded = await loadAssetData();
+            
+            // ONLY if data loading was successful, start the camera
+            if (dataLoaded) {
+                statusMessageEl.textContent = 'Ready to scan. Please grant camera permission.';
+                scannerEl.style.display = 'block'; // Show the scanner element
+
+                scanner = new Html5QrcodeScanner(
+                    "qr-reader", 
+                    { fps: 10, qrbox: { width: 250, height: 250 } },
+                    /* verbose= */ false
+                );
+                scanner.render(onScanSuccess);
+            } else {
+                // If data failed to load, hide the scanner box
+                 scannerEl.style.display = 'none';
+            }
         }
 
-        // We need a global variable for the scanner so we can access it in onScanSuccess
-        let scanner; 
-
-        // When the document is ready, load the data and initialize the scanner
-        document.addEventListener('DOMContentLoaded', () => {
-            // First, load the data from your Google Sheet
-            loadAssetData(); 
-            
-            // Then, create the scanner object and render it
-            scanner = new Html5QrcodeScanner(
-                "qr-reader", 
-                { fps: 10, qrbox: { width: 250, height: 250 } }
-            );
-            scanner.render(onScanSuccess, onScanFailure);
-        });
-
+        // Run the main function when the page is ready
+        document.addEventListener('DOMContentLoaded', main);
     </script>
 </body>
 </html>
