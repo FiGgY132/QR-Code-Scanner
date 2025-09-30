@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Scanner</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; margin: 20px; background-color: #f4f4f4; }
+        #qr-reader { width: 80%; max-width: 500px; margin: 20px auto; border: 2px solid #ccc; }
+        #status-message { font-size: 1.2em; color: #333; margin-top: 20px; }
+        a { color: #007bff; }
+    </style>
+</head>
+<body>
+    <h1>Scan Asset QR Code</h1>
+    <div id="qr-reader"></div>
+    <div id="status-message">Loading data and waiting for scan...</div>
+
+    <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
+
+    <script>
+
+        const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRdR8paF1wZmHbekRDv3ff3pl7ZQ3fvU-lS2X8nUdWVlhJFWI8EFqAHtWZCtcRW1FAIeIAlgRbtXtcJ/pub?gid=0&single=true&output=csv'; 
+
+        // This object will store our asset data: { "AssetID": "PDF_Link", ... }
+        const assetData = new Map();
+
+        const statusMessageEl = document.getElementById('status-message');
+
+        // Function to fetch and parse the CSV data from Google Sheets
+        async function loadAssetData() {
+            try {
+                const response = await fetch(GOOGLE_SHEET_CSV_URL);
+                const csvData = await response.text();
+                
+                // Split the CSV into rows and skip the header row (the first line)
+                const rows = csvData.trim().split('\n').slice(1);
+
+                for (const row of rows) {
+                    const [assetId, pdfLink] = row.split(',');
+                    if (assetId && pdfLink) {
+                        assetData.set(assetId.trim(), pdfLink.trim());
+                    }
+                }
+                
+                console.log('Asset data loaded successfully:', assetData);
+                statusMessageEl.textContent = 'Ready to scan.';
+            } catch (error) {
+                console.error('Failed to load asset data:', error);
+                statusMessageEl.textContent = 'Error: Could not load asset data. Please check the URL and your internet connection.';
+                statusMessageEl.style.color = 'red';
+            }
+        }
+
+        // Function that runs when a QR code is successfully scanned
+        function onScanSuccess(decodedText, decodedResult) {
+            console.log(`Scan result: ${decodedText}`);
+            
+            // Check if the scanned asset ID exists in our data
+            if (assetData.has(decodedText)) {
+                const pdfUrl = assetData.get(decodedText);
+                
+                // Stop the scanner
+                html5QrcodeScanner.clear().catch(error => {
+                    console.error("Failed to clear html5QrcodeScanner.", error);
+                });
+
+                // Inform the user and redirect
+                statusMessageEl.textContent = `Asset Found! Redirecting to PDF...`;
+                window.location.href = pdfUrl;
+
+            } else {
+                statusMessageEl.textContent = `Error: Asset ID "${decodedText}" not found in the database.`;
+                statusMessageEl.style.color = 'orange';
+
+                // Briefly show the error, then reset to allow another scan
+                setTimeout(() => {
+                    statusMessageEl.textContent = 'Ready to scan.';
+                    statusMessageEl.style.color = '#333';
+                }, 3000);
+            }
+        }
+        
+        // Function to handle scan errors (optional)
+        function onScanFailure(error) {
+            // This function is called frequently, so we don't log every error.
+            // console.warn(`QR error = ${error}`);
+        }
+
+        // When the document is ready, load the data and initialize the scanner
+        document.addEventListener('DOMContentLoaded', () => {
+            loadAssetData(); // Fetch the data from Google Sheets
+            
+            const html5QrcodeScanner = new Html5QrcodeScanner(
+                "qr-reader", 
+                { fps: 10, qrbox: { width: 250, height: 250 } }
+            );
+            html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+        });
+
+    </script>
+</body>
+</html>
