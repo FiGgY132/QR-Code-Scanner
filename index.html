@@ -7,8 +7,8 @@
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"; text-align: center; margin: 20px; background-color: #f4f4f4; color: #333; }
         #qr-reader-container { max-width: 500px; margin: 20px auto; }
-        #qr-reader { border: 2px solid #ccc; display: none; }
-        #status-message { font-size: 1.2em; margin-top: 20px; padding: 10px; background-color: #fff; border-radius: 5px; }
+        #qr-reader { border: 2px solid #ccc; }
+        #status-message { font-size: 1.2em; margin-top: 20px; padding: 10px; background-color: #fff; border-radius: 5px; min-height: 50px; display: flex; align-items: center; justify-content: center; flex-direction: column; }
         .success-message { margin-bottom: 20px; font-size: 1.1em; }
         .link-button, .reset-button { display: block; width: 80%; max-width: 300px; margin: 15px auto; padding: 15px; border-radius: 8px; text-decoration: none; font-size: 1.1em; font-weight: bold; border: none; cursor: pointer; }
         .link-button { background-color: #007bff; color: white; }
@@ -29,8 +29,7 @@
 
         const assetData = new Map();
         const statusMessageEl = document.getElementById('status-message');
-        const qrReaderEl = document.getElementById('qr-reader');
-        let scanner;
+        let html5QrcodeScanner; // We'll store the scanner object here
 
         async function loadAssetData() {
             statusMessageEl.textContent = 'Connecting to asset database...';
@@ -56,9 +55,10 @@
             if (assetData.has(decodedText)) {
                 const pdfUrl = assetData.get(decodedText);
                 
-                // Stop the scanner and hide the video feed
-                scanner.clear().catch(err => console.error("Error clearing scanner", err));
-                qrReaderEl.style.display = 'none';
+                // Stop the scanner and clear the video feed
+                html5QrcodeScanner.clear().catch(error => {
+                    console.error("Failed to clear html5QrcodeScanner.", error);
+                });
 
                 // Display the success message and clickable buttons
                 statusMessageEl.innerHTML = `
@@ -67,7 +67,20 @@
                     <button onclick="location.reload()" class="reset-button">Scan Another Asset</button>
                 `;
             } else {
-                statusMessageEl.textContent = `Asset ID "${decodedText}" not found. Please try again.`;
+                // Temporarily show an error if the asset ID is not in our list
+                statusMessageEl.textContent = `Asset ID "${decodedText}" not found.`;
+                setTimeout(() => {
+                    if(statusMessageEl.textContent === `Asset ID "${decodedText}" not found.`) {
+                       statusMessageEl.textContent = 'Ready to scan.';
+                    }
+                }, 3000);
+            }
+        }
+        
+        function onScanFailure(error) {
+            // We can ignore the common "QR code not found" error, but log others
+            if (!error.includes("NotFoundException")) {
+                console.warn(`QR scan failure: ${error}`);
             }
         }
         
@@ -75,22 +88,21 @@
             const dataLoaded = await loadAssetData();
             if (!dataLoaded) return;
 
-            statusMessageEl.textContent = 'Database loaded. Starting camera...';
-            qrReaderEl.style.display = 'block';
+            statusMessageEl.textContent = 'Database loaded. Please grant camera permission.';
 
-            scanner = new Html5Qrcode("qr-reader");
-            try {
-                await scanner.start(
-                    { facingMode: "environment" },
-                    { fps: 10, qrbox: (w, h) => ({ width: w * 0.7, height: h * 0.7 }) },
-                    onScanSuccess
-                );
-                statusMessageEl.textContent = 'Ready to scan.';
-            } catch (err) {
-                qrReaderEl.style.display = 'none';
-                statusMessageEl.textContent = `CAMERA ERROR: ${err}`;
-                statusMessageEl.style.color = 'red';
-            }
+            // This is the "all-in-one" scanner component that we know works on your device
+            html5QrcodeScanner = new Html5QrcodeScanner(
+                "qr-reader", 
+                { 
+                    fps: 10, 
+                    qrbox: { width: 250, height: 250 } 
+                },
+                /* verbose= */ false
+            );
+            
+            // Start the scanner
+            html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+            statusMessageEl.textContent = 'Ready to scan.'; // Update status after render is called
         }
 
         document.addEventListener('DOMContentLoaded', main);
