@@ -7,8 +7,12 @@
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"; text-align: center; margin: 20px; background-color: #f4f4f4; color: #333; }
         #qr-reader-container { max-width: 500px; margin: 20px auto; }
-        #qr-reader { border: 2px solid #ccc; }
+        #qr-reader { border: 2px solid #ccc; display: none; }
         #status-message { font-size: 1.2em; margin-top: 20px; padding: 10px; background-color: #fff; border-radius: 5px; }
+        .success-message { margin-bottom: 20px; font-size: 1.1em; }
+        .link-button, .reset-button { display: block; width: 80%; max-width: 300px; margin: 15px auto; padding: 15px; border-radius: 8px; text-decoration: none; font-size: 1.1em; font-weight: bold; border: none; cursor: pointer; }
+        .link-button { background-color: #007bff; color: white; }
+        .reset-button { background-color: #6c757d; color: white; }
     </style>
 </head>
 <body>
@@ -25,6 +29,7 @@
 
         const assetData = new Map();
         const statusMessageEl = document.getElementById('status-message');
+        const qrReaderEl = document.getElementById('qr-reader');
         let scanner;
 
         async function loadAssetData() {
@@ -33,50 +38,36 @@
                 const response = await fetch(GOOGLE_SHEET_CSV_URL);
                 if (!response.ok) throw new Error(`Network error: ${response.statusText}`);
                 const csvData = await response.text();
-                
                 const rows = csvData.trim().split('\n').slice(1);
                 if (rows.length === 0) throw new Error("Asset database is empty.");
-
                 for (const row of rows) {
                     const [assetId, pdfLink] = row.split(',');
                     if (assetId && pdfLink) assetData.set(assetId.trim(), pdfLink.trim());
                 }
-                
-                console.log(`Loaded ${assetData.size} assets.`);
                 return true;
             } catch (error) {
-                console.error('Failed to load asset data:', error);
-                statusMessageEl.textContent = `Error: Could not load database. ${error.message}`;
+                statusMessageEl.innerHTML = `<strong>Error:</strong> Could not load database.<br><button onclick="location.reload()" class="reset-button">Try Again</button>`;
                 statusMessageEl.style.color = 'red';
                 return false;
             }
         }
 
-function onScanSuccess(decodedText, decodedResult) {
+        function onScanSuccess(decodedText, decodedResult) {
             if (assetData.has(decodedText)) {
-                // If the scanned Asset ID is found in our spreadsheet data...
                 const pdfUrl = assetData.get(decodedText);
                 
-                // Update the status message for the user.
-                statusMessageEl.textContent = `Asset Found! Redirecting...`;
-                
-                // Stop the scanner to prevent it from scanning again in the background.
+                // Stop the scanner and hide the video feed
                 scanner.clear().catch(err => console.error("Error clearing scanner", err));
-                
-                // Wait half a second (to let the user see the message) then redirect.
-                setTimeout(() => {
-                    window.location.href = pdfUrl;
-                }, 500);
+                qrReaderEl.style.display = 'none';
 
+                // Display the success message and clickable buttons
+                statusMessageEl.innerHTML = `
+                    <div class="success-message"><strong>Asset Found:</strong> ${decodedText}</div>
+                    <a href="${pdfUrl}" class="link-button" target="_blank" rel="noopener noreferrer">Open PDF Document</a>
+                    <button onclick="location.reload()" class="reset-button">Scan Another Asset</button>
+                `;
             } else {
-                // If the scanned Asset ID is NOT found...
-                statusMessageEl.textContent = `Asset ID "${decodedText}" not found.`;
-                statusMessageEl.style.color = 'orange';
-                // Reset the message after a few seconds.
-                setTimeout(() => {
-                    statusMessageEl.textContent = 'Ready to scan.';
-                    statusMessageEl.style.color = '#333';
-                }, 3000);
+                statusMessageEl.textContent = `Asset ID "${decodedText}" not found. Please try again.`;
             }
         }
         
@@ -85,26 +76,18 @@ function onScanSuccess(decodedText, decodedResult) {
             if (!dataLoaded) return;
 
             statusMessageEl.textContent = 'Database loaded. Starting camera...';
+            qrReaderEl.style.display = 'block';
 
+            scanner = new Html5Qrcode("qr-reader");
             try {
-                scanner = new Html5Qrcode("qr-reader");
                 await scanner.start(
-                    { facingMode: "environment" }, // Ask for the back camera
-                    {
-                        fps: 10,
-                        qrbox: (viewfinderWidth, viewfinderHeight) => {
-                            // Make the scanning box responsive and square
-                            const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-                            return { width: minEdge * 0.7, height: minEdge * 0.7 };
-                        }
-                    },
+                    { facingMode: "environment" },
+                    { fps: 10, qrbox: (w, h) => ({ width: w * 0.7, height: h * 0.7 }) },
                     onScanSuccess
                 );
                 statusMessageEl.textContent = 'Ready to scan.';
             } catch (err) {
-
-                // If the camera fails to start, display the error on screen.
-                console.error("Camera start failed:", err);
+                qrReaderEl.style.display = 'none';
                 statusMessageEl.textContent = `CAMERA ERROR: ${err}`;
                 statusMessageEl.style.color = 'red';
             }
@@ -114,5 +97,3 @@ function onScanSuccess(decodedText, decodedResult) {
     </script>
 </body>
 </html>
-
-
