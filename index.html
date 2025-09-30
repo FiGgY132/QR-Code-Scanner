@@ -54,18 +54,25 @@
 
 function onScanSuccess(decodedText, decodedResult) {
             if (assetData.has(decodedText)) {
+                // If the scanned Asset ID is found in our spreadsheet data...
                 const pdfUrl = assetData.get(decodedText);
                 
-                // --- THIS IS THE CHANGE ---
-                // Instead of redirecting, we will now display the link.
-                statusMessageEl.innerHTML = `<strong>Asset Found!</strong><br>The link is:<br><br>${pdfUrl}`;
+                // Update the status message for the user.
+                statusMessageEl.textContent = `Asset Found! Redirecting...`;
                 
-                // We stop the scanner so it doesn't keep scanning in the background.
+                // Stop the scanner to prevent it from scanning again in the background.
                 scanner.clear().catch(err => console.error("Error clearing scanner", err));
+                
+                // Wait half a second (to let the user see the message) then redirect.
+                setTimeout(() => {
+                    window.location.href = pdfUrl;
+                }, 500);
 
             } else {
+                // If the scanned Asset ID is NOT found...
                 statusMessageEl.textContent = `Asset ID "${decodedText}" not found.`;
                 statusMessageEl.style.color = 'orange';
+                // Reset the message after a few seconds.
                 setTimeout(() => {
                     statusMessageEl.textContent = 'Ready to scan.';
                     statusMessageEl.style.color = '#333';
@@ -107,4 +114,5 @@ function onScanSuccess(decodedText, decodedResult) {
     </script>
 </body>
 </html>
+
 
