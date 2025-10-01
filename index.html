@@ -179,6 +179,11 @@
                 "qr-reader", 
                 { 
                     fps: 120
+                    videoConstraints: {
+                        width: { ideal: 640 },
+                        height: { ideal: 480 },
+                        facingMode: "environment"
+                    },
                 },
                 /* verbose= */ false
             );
@@ -191,6 +196,7 @@
     </script>
 </body>
 </html>
+
 
 
 
