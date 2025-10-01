@@ -180,10 +180,12 @@
                 { 
                     fps: 120,
                     videoConstraints: {
-                        width: { ideal: 640 },
-                        height: { ideal: 480 },
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 },
                         facingMode: "environment"
                     },
+                    experimental: {
+                        useWebWorker: true
                 },
                 /* verbose= */ false
             );
@@ -196,6 +198,7 @@
     </script>
 </body>
 </html>
+
 
 
 
