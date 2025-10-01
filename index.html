@@ -52,26 +52,38 @@
         }
 
         function onScanSuccess(decodedText, decodedResult) {
-            if (assetData.has(decodedText)) {
-                const pdfUrl = assetData.get(decodedText);
+            // --- THIS IS THE NEW "POST-SCAN FILTERING" LOGIC ---
+            // The scanner found a code. First, we check what TYPE of code it is.
+            // The library gives us a format name like "QR_CODE", "DATA_MATRIX", "CODE_128", etc.
+            const formatName = decodedResult.result.format.formatName;
+            
+            // We only proceed if it's one of the types we want.
+            if (formatName === "QR_CODE" || formatName === "DATA_MATRIX") {
                 
-                html5QrcodeScanner.clear().catch(error => {
-                    console.error("Failed to clear html5QrcodeScanner.", error);
-                });
+                // Now we do our original check to see if the asset ID is in our list.
+                if (assetData.has(decodedText)) {
+                    const pdfUrl = assetData.get(decodedText);
+                    
+                    html5QrcodeScanner.clear().catch(error => {
+                        console.error("Failed to clear html5QrcodeScanner.", error);
+                    });
 
-                statusMessageEl.innerHTML = `
-                    <div class="success-message"><strong>Asset Found:</strong> ${decodedText}</div>
-                    <a href="${pdfUrl}" class="link-button" target="_blank" rel="noopener noreferrer">Open PDF Document</a>
-                    <button onclick="location.reload()" class="reset-button">Scan Another Asset</button>
-                `;
-            } else {
-                statusMessageEl.textContent = `Asset ID "${decodedText}" not found.`;
-                setTimeout(() => {
-                    if(statusMessageEl.textContent === `Asset ID "${decodedText}" not found.`) {
-                       statusMessageEl.textContent = 'Ready to scan.';
-                    }
-                }, 3000);
+                    statusMessageEl.innerHTML = `
+                        <div class="success-message"><strong>Asset Found:</strong> ${decodedText}</div>
+                        <a href="${pdfUrl}" class="link-button" target="_blank" rel="noopener noreferrer">Open PDF Document</a>
+                        <button onclick="location.reload()" class="reset-button">Scan Another Asset</button>
+                    `;
+                } else {
+                    statusMessageEl.textContent = `Asset ID "${decodedText}" not found.`;
+                    setTimeout(() => {
+                        if(statusMessageEl.textContent === `Asset ID "${decodedText}" not found.`) {
+                           statusMessageEl.textContent = 'Ready to scan.';
+                        }
+                    }, 3000);
+                }
             }
+            // If the scanned code was NOT a QR Code or Data Matrix, this function does nothing
+            // and the scanner simply continues looking, so you won't even notice.
         }
         
         function onScanFailure(error) {
@@ -84,15 +96,11 @@
 
             statusMessageEl.textContent = 'Database loaded. Please grant camera permission.';
 
-            
+            // We are now back to the configuration that we know works on your phone.
             html5QrcodeScanner = new Html5QrcodeScanner(
                 "qr-reader", 
                 { 
-                    fps: 10, 
-                    supportedScanTypes: [
-                        Html5QrcodeScanType.SCAN_TYPE_QRCODE,
-                        Html5QrcodeScanType.SCAN_TYPE_DATAMATRIX
-                    ]
+                    fps: 10
                 },
                 /* verbose= */ false
             );
