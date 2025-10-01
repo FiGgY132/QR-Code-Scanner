@@ -75,7 +75,7 @@
         }
         
         function onScanFailure(error) {
-            // This function is intentionally left blank to avoid spamming the console.
+            // Intentionally left blank.
         }
         
         async function main() {
@@ -84,15 +84,15 @@
 
             statusMessageEl.textContent = 'Database loaded. Please grant camera permission.';
 
+            
             html5QrcodeScanner = new Html5QrcodeScanner(
                 "qr-reader", 
                 { 
-                    fps: 10,
+                    fps: 10, 
                     supportedScanTypes: [
                         Html5QrcodeScanType.SCAN_TYPE_QRCODE,
                         Html5QrcodeScanType.SCAN_TYPE_DATAMATRIX
                     ]
-                    // No qrbox setting!
                 },
                 /* verbose= */ false
             );
@@ -105,5 +105,3 @@
     </script>
 </body>
 </html>
-
-
