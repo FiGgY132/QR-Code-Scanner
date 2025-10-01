@@ -29,7 +29,7 @@
 
         const assetData = new Map();
         const statusMessageEl = document.getElementById('status-message');
-        let html5QrcodeScanner; // We'll store the scanner object here
+        let html5QrcodeScanner;
 
         async function loadAssetData() {
             statusMessageEl.textContent = 'Connecting to asset database...';
@@ -55,19 +55,16 @@
             if (assetData.has(decodedText)) {
                 const pdfUrl = assetData.get(decodedText);
                 
-                // Stop the scanner and clear the video feed
                 html5QrcodeScanner.clear().catch(error => {
                     console.error("Failed to clear html5QrcodeScanner.", error);
                 });
 
-                // Display the success message and clickable buttons
                 statusMessageEl.innerHTML = `
                     <div class="success-message"><strong>Asset Found:</strong> ${decodedText}</div>
                     <a href="${pdfUrl}" class="link-button" target="_blank" rel="noopener noreferrer">Open PDF Document</a>
                     <button onclick="location.reload()" class="reset-button">Scan Another Asset</button>
                 `;
             } else {
-                // Temporarily show an error if the asset ID is not in our list
                 statusMessageEl.textContent = `Asset ID "${decodedText}" not found.`;
                 setTimeout(() => {
                     if(statusMessageEl.textContent === `Asset ID "${decodedText}" not found.`) {
@@ -78,10 +75,7 @@
         }
         
         function onScanFailure(error) {
-            // We can ignore the common "QR code not found" error, but log others
-            if (!error.includes("NotFoundException")) {
-                console.warn(`QR scan failure: ${error}`);
-            }
+            // This function is intentionally left blank to avoid spamming the console.
         }
         
         async function main() {
@@ -90,19 +84,19 @@
 
             statusMessageEl.textContent = 'Database loaded. Please grant camera permission.';
 
-            // This is the "all-in-one" scanner component that we know works on your device
+            // *** THE KEY CHANGE IS HERE ***
+            // We are removing the qrbox setting to force the scanner to use the entire video feed.
             html5QrcodeScanner = new Html5QrcodeScanner(
                 "qr-reader", 
                 { 
-                    fps: 10, 
-                    qrbox: { width: 250, height: 250 } 
+                    fps: 10
+                    // No qrbox setting!
                 },
                 /* verbose= */ false
             );
             
-            // Start the scanner
             html5QrcodeScanner.render(onScanSuccess, onScanFailure);
-            statusMessageEl.textContent = 'Ready to scan.'; // Update status after render is called
+            statusMessageEl.textContent = 'Ready to scan.';
         }
 
         document.addEventListener('DOMContentLoaded', main);
