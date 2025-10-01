@@ -168,7 +168,8 @@
         function onScanFailure(error) {
             // Intentionally left blank.
         }
-        
+        const formatsToSupport = [
+          Html5QrcodeSupportedFormats.QR_CODE,        ];
         async function main() {
             const dataLoaded = await loadAssetData();
             if (!dataLoaded) return;
@@ -178,8 +179,9 @@
             html5QrcodeScanner = new Html5QrcodeScanner(
                 "qr-reader", 
                 { 
-                    fps: 60,
+                    fps: 50,
                     qrbox: {width: 400, height: 400},
+                    formatsToSupport: formatsToSupport
                 },
                 /* verbose= */ false
             );
@@ -192,6 +194,7 @@
     </script>
 </body>
 </html>
+
 
 
 
