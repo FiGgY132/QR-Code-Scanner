@@ -24,12 +24,23 @@
 
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
-    <script>
+<script>
         const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRdR8paF1wZmHbekRDv3ff3pl7ZQ3fvU-lS2X8nUdWVlhJFWI8EFqAHtWZCtcRW1FAIeIAlgRbtXtcJ/pub?gid=0&single=true&output=csv';
 
         const assetData = new Map();
         const statusMessageEl = document.getElementById('status-message');
         let html5QrcodeScanner;
+
+        // --- NEW: A function to reset the scanner without reloading the page ---
+        function resetScanner() {
+            // Clear the success message and buttons from the status area.
+            statusMessageEl.innerHTML = ""; 
+            
+            // Re-render the scanner. This will restart the camera and UI
+            // without needing to re-download the CSV file.
+            html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+            statusMessageEl.textContent = 'Ready to scan.';
+        }
 
         async function loadAssetData() {
             statusMessageEl.textContent = 'Connecting to asset database...';
@@ -52,15 +63,10 @@
         }
 
         function onScanSuccess(decodedText, decodedResult) {
-            // --- THIS IS THE NEW "POST-SCAN FILTERING" LOGIC ---
-            // The scanner found a code. First, we check what TYPE of code it is.
-            // The library gives us a format name like "QR_CODE", "DATA_MATRIX", "CODE_128", etc.
+            // Using "post-scan filtering" to only accept desired barcode types
             const formatName = decodedResult.result.format.formatName;
-            
-            // We only proceed if it's one of the types we want.
             if (formatName === "QR_CODE" || formatName === "DATA_MATRIX") {
                 
-                // Now we do our original check to see if the asset ID is in our list.
                 if (assetData.has(decodedText)) {
                     const pdfUrl = assetData.get(decodedText);
                     
@@ -68,10 +74,11 @@
                         console.error("Failed to clear html5QrcodeScanner.", error);
                     });
 
+                   
                     statusMessageEl.innerHTML = `
                         <div class="success-message"><strong>Asset Found:</strong> ${decodedText}</div>
                         <a href="${pdfUrl}" class="link-button" target="_blank" rel="noopener noreferrer">Open PDF Document</a>
-                        <button onclick="location.reload()" class="reset-button">Scan Another Asset</button>
+                        <button onclick="resetScanner()" class="reset-button">Scan Another Asset</button>
                     `;
                 } else {
                     statusMessageEl.textContent = `Asset ID "${decodedText}" not found.`;
@@ -82,8 +89,6 @@
                     }, 3000);
                 }
             }
-            // If the scanned code was NOT a QR Code or Data Matrix, this function does nothing
-            // and the scanner simply continues looking, so you won't even notice.
         }
         
         function onScanFailure(error) {
@@ -96,11 +101,10 @@
 
             statusMessageEl.textContent = 'Database loaded. Please grant camera permission.';
 
-            // We are now back to the configuration that we know works on your phone.
             html5QrcodeScanner = new Html5QrcodeScanner(
                 "qr-reader", 
                 { 
-                    fps: 10
+                    fps: 20
                 },
                 /* verbose= */ false
             );
@@ -113,3 +117,4 @@
     </script>
 </body>
 </html>
+
