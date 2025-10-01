@@ -5,14 +5,86 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Asset PDF Scanner</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"; text-align: center; margin: 20px; background-color: #f4f4f4; color: #333; }
-        #qr-reader-container { max-width: 500px; margin: 20px auto; }
-        #qr-reader { border: 2px solid #ccc; }
-        #status-message { font-size: 1.2em; margin-top: 20px; padding: 10px; background-color: #fff; border-radius: 5px; min-height: 50px; display: flex; align-items: center; justify-content: center; flex-direction: column; }
-        .success-message { margin-bottom: 20px; font-size: 1.1em; }
-        .link-button, .reset-button { display: block; width: 80%; max-width: 300px; margin: 15px auto; padding: 15px; border-radius: 8px; text-decoration: none; font-size: 1.1em; font-weight: bold; border: none; cursor: pointer; }
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+        }
+        * {
+            box-sizing: border-box;
+        }
+
+
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f4f4; 
+            color: #333;
+            display: flex;
+            flex-direction: column;
+        }
+
+        h1 {
+            font-size: 1.5rem; /* A flexible font size unit */
+        }
+
+
+        #main-container {
+            width: 100%;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #qr-reader { 
+            width: 100%;
+            border: 2px solid #ccc; 
+            border-radius: 8px;
+        }
+        
+        #status-message { 
+            font-size: 1.1em; 
+            margin-top: 20px; 
+            padding: 20px; 
+            background-color: #fff; 
+            border-radius: 8px;
+            width: 100%;
+            min-height: 80px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            flex-direction: column;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+
+        .success-message { margin-bottom: 20px; font-size: 1.2em; font-weight: 500; }
+        .link-button, .reset-button { 
+            display: block; 
+            width: 100%; /* Full width on mobile */
+            margin: 10px auto; 
+            padding: 16px; 
+            border-radius: 8px; 
+            text-decoration: none; 
+            font-size: 1.1em; 
+            font-weight: bold; 
+            border: none; 
+            cursor: pointer; 
+            transition: background-color 0.2s ease;
+        }
         .link-button { background-color: #007bff; color: white; }
+        .link-button:hover { background-color: #0056b3; }
         .reset-button { background-color: #6c757d; color: white; }
+        .reset-button:hover { background-color: #5a6268; }
+
+
+        @media (min-width: 600px) {
+            #main-container {
+                max-width: 500px; /* Limit width on desktop */
+                margin: 20px auto; /* Center it on the page */
+            }
+        }
     </style>
 </head>
 <body>
@@ -117,6 +189,7 @@
     </script>
 </body>
 </html>
+
 
 
 
