@@ -84,12 +84,14 @@
 
             statusMessageEl.textContent = 'Database loaded. Please grant camera permission.';
 
-            // *** THE KEY CHANGE IS HERE ***
-            // We are removing the qrbox setting to force the scanner to use the entire video feed.
             html5QrcodeScanner = new Html5QrcodeScanner(
                 "qr-reader", 
                 { 
                     fps: 10
+                    supportedScanTypes: [
+                        Html5QrcodeScanType.SCAN_TYPE_QRCODE,
+                        Html5QrcodeScanType.SCAN_TYPE_DATAMATRIX
+                    ]
                     // No qrbox setting!
                 },
                 /* verbose= */ false
@@ -103,3 +105,4 @@
     </script>
 </body>
 </html>
+
