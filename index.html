@@ -3,225 +3,476 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Asset PDF Scanner</title>
+    <title>Asset Scanner</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
     <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg:        #0d0f12;
+            --surface:   #161a1f;
+            --border:    #2a2f38;
+            --accent:    #00e5a0;
+            --accent-dim:#00e5a020;
+            --danger:    #ff4d6d;
+            --text:      #e2e8f0;
+            --muted:     #64748b;
+            --radius:    10px;
+            --mono:      'IBM Plex Mono', monospace;
+            --sans:      'IBM Plex Sans', sans-serif;
+        }
+
         html, body {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-        }
-        * {
-            box-sizing: border-box;
+            width: 100%; height: 100%;
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--sans);
         }
 
-
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #f4f4f4; 
-            color: #333;
-            display: flex;
-            flex-direction: column;
-        }
-
-        h1 {
-            font-size: 2rem; /* A flexible font size unit */
-            text-align: center;
-        }
-
-
-        #main-container {
-            width: 100%;
-            padding: 20px;
+        body {
             display: flex;
             flex-direction: column;
             align-items: center;
+            min-height: 100%;
         }
 
-        #qr-reader { 
+        header {
             width: 100%;
-            border: 2px solid #0f0; 
-            border-radius: 8px;
+            max-width: 520px;
+            padding: 28px 20px 0;
+            display: flex;
+            align-items: baseline;
+            gap: 12px;
         }
-        
-        #status-message { 
-            font-size: 1.1em; 
-            margin-top: 20px; 
-            padding: 20px; 
-            background-color: #fff; 
-            border-radius: 8px;
+
+        header h1 {
+            font-family: var(--mono);
+            font-size: 1.35rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            color: var(--text);
+        }
+
+        header h1 span {
+            color: var(--accent);
+        }
+
+        .version-badge {
+            font-family: var(--mono);
+            font-size: 0.65rem;
+            color: var(--muted);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 2px 6px;
+            letter-spacing: 0.05em;
+        }
+
+        #main-container {
             width: 100%;
-            min-height: 80px; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
+            max-width: 520px;
+            padding: 20px;
+            display: flex;
             flex-direction: column;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            gap: 16px;
+            flex: 1;
         }
 
-
-        .success-message { margin-bottom: 20px; font-size: 1.2em; font-weight: 500; }
-        .link-button, .reset-button { 
-            display: block; 
-            width: 100%; /* Full width on mobile */
-            margin: 10px auto; 
-            padding: 16px; 
-            border-radius: 8px; 
-            text-decoration: none; 
-            text-align: center;
-            font-size: 1.1em; 
-            font-weight: bold; 
-            border: none; 
-            cursor: pointer; 
-            transition: background-color 0.2s ease;
+        #viewfinder-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+            position: relative;
         }
-        .link-button { background-color: #007bff; color: white; }
-        .link-button:hover { background-color: #0056b3; }
-        .reset-button { background-color: #6c757d; color: white; }
-        .reset-button:hover { background-color: #5a6268; }
 
-
-        @media (min-width: 600px) {
-            #main-container {
-                max-width: 500px; /* Limit width on desktop */
-                margin: 20px auto; /* Center it on the page */
-            }
+        #viewfinder-card::before,
+        #viewfinder-card::after {
+            content: '';
+            position: absolute;
+            width: 20px; height: 20px;
+            border-color: var(--accent);
+            border-style: solid;
+            z-index: 10;
+            pointer-events: none;
         }
+        #viewfinder-card::before { top: 10px; left: 10px; border-width: 2px 0 0 2px; }
+        #viewfinder-card::after  { bottom: 10px; right: 10px; border-width: 0 2px 2px 0; }
+
+        #qr-reader {
+            width: 100%;
+        }
+
+        #qr-reader > * { border: none !important; }
+        #qr-reader img[alt="Info icon"] { display: none; }
+        #qr-reader__scan_region { background: transparent !important; }
+        #qr-reader__dashboard { background: var(--surface) !important; padding: 10px !important; }
+        #qr-reader__dashboard_section_swaplink { color: var(--accent) !important; font-family: var(--mono) !important; font-size: 0.8rem !important; }
+        #qr-reader__camera_selection { 
+            background: var(--bg) !important; 
+            color: var(--text) !important; 
+            border: 1px solid var(--border) !important; 
+            border-radius: 6px !important;
+            padding: 6px 8px !important;
+            font-family: var(--mono) !important;
+            font-size: 0.8rem !important;
+            width: 100% !important;
+        }
+        #qr-reader__status_span { color: var(--muted) !important; font-family: var(--mono) !important; font-size: 0.75rem !important; }
+        #html5-qrcode-button-camera-start,
+        #html5-qrcode-button-camera-stop {
+            background: var(--accent) !important;
+            color: #000 !important;
+            border: none !important;
+            border-radius: 6px !important;
+            padding: 8px 18px !important;
+            font-family: var(--mono) !important;
+            font-weight: 600 !important;
+            font-size: 0.85rem !important;
+            cursor: pointer !important;
+            margin-top: 6px !important;
+        }
+        #html5-qrcode-button-camera-stop {
+            background: var(--border) !important;
+            color: var(--text) !important;
+        }
+        #html5-qrcode-button-file-selection {
+            background: var(--border) !important;
+            color: var(--text) !important;
+            border: none !important;
+            border-radius: 6px !important;
+            padding: 8px 18px !important;
+            font-family: var(--mono) !important;
+            font-size: 0.85rem !important;
+            cursor: pointer !important;
+        }
+
+        #status-panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 18px 20px;
+            min-height: 72px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 12px;
+            transition: border-color 0.3s ease;
+        }
+
+        #status-panel.state-success { border-color: var(--accent); }
+        #status-panel.state-error   { border-color: var(--danger); }
+        #status-panel.state-loading { border-color: var(--border); }
+
+        .status-line {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .status-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: var(--muted);
+            flex-shrink: 0;
+            transition: background 0.3s;
+        }
+        .state-success .status-dot { background: var(--accent); animation: pulse 2s infinite; }
+        .state-error   .status-dot { background: var(--danger); }
+        .state-loading .status-dot { background: var(--muted); animation: blink 1s infinite; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; } 50% { opacity: 0.4; }
+        }
+        @keyframes blink {
+            0%, 100% { opacity: 1; } 50% { opacity: 0.2; }
+        }
+
+        #status-text {
+            font-family: var(--mono);
+            font-size: 0.85rem;
+            color: var(--muted);
+        }
+
+        #result-area {
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+            width: 100%;
+        }
+        #result-area.visible { display: flex; }
+
+        .asset-id-label {
+            font-family: var(--mono);
+            font-size: 0.7rem;
+            color: var(--muted);
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .asset-id-value {
+            font-family: var(--mono);
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--accent);
+            word-break: break-all;
+        }
+
+        .action-row {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+            margin-top: 4px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 18px;
+            border-radius: var(--radius);
+            font-family: var(--mono);
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            transition: opacity 0.15s, transform 0.1s;
+            flex: 1;
+        }
+        .btn:active { transform: scale(0.97); }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #000;
+        }
+        .btn-primary:hover { opacity: 0.88; }
+
+        .btn-secondary {
+            background: var(--border);
+            color: var(--text);
+        }
+        .btn-secondary:hover { opacity: 0.8; }
+
+        .btn-danger-outline {
+            background: transparent;
+            color: var(--danger);
+            border: 1px solid var(--danger);
+        }
+        .btn-danger-outline:hover { background: var(--danger); color: #fff; }
+
+        .spinner {
+            width: 14px; height: 14px;
+            border: 2px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            flex-shrink: 0;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
     </style>
 </head>
 <body>
 
-    <div id="main-container">
-        <h1>Asset Scanner</h1>
-        <div id="qr-reader"></div>
-        <div id="status-message">Initializing...</div>
-    </div>
-    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <header>
+        <h1>Asset <span>//</span> Scanner</h1>
+        <span class="version-badge">v2.0</span>
+    </header>
 
-<script>
-        const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRdR8paF1wZmHbekRDv3ff3pl7ZQ3fvU-lS2X8nUdWVlhJFWI8EFqAHtWZCtcRW1FAIeIAlgRbtXtcJ/pub?gid=0&single=true&output=csv';
+    <div id="main-container">
+        <div id="viewfinder-card">
+            <div id="qr-reader"></div>
+        </div>
+
+        <div id="status-panel" class="state-loading">
+            <div class="status-line">
+                <div class="status-dot"></div>
+                <span id="status-text">Initialising...</span>
+            </div>
+            <div id="result-area">
+                <div>
+                    <div class="asset-id-label">Asset ID</div>
+                    <div class="asset-id-value" id="asset-id-display"></div>
+                </div>
+                <div class="action-row">
+                    <a id="open-doc-btn" href="#" class="btn btn-primary" target="_blank" rel="noopener noreferrer">Open Document ↗</a>
+                    <button id="reset-btn" class="btn btn-secondary">Scan Again</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <script>
+    (() => {
+        'use strict';
+
+        const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRdR8paF1wZmHbekRDv3ff3pl7ZQ3fvU-lS2X8nUdWVlhJFWI8EFqAHtWZCtcRW1FAIeIAlgRbtXtcJ/pub?gid=0&single=true&output=csv';
+        const ACCEPTED_FORMATS = [Html5QrcodeSupportedFormats.QR_CODE, Html5QrcodeSupportedFormats.DATA_MATRIX];
+        const UNSUPPORTED_MSG_DURATION_MS = 2500;
 
         const assetData = new Map();
-        const statusMessageEl = document.getElementById('status-message');
-        let html5QrcodeScanner;
+        let scanner = null;
+        let scanCooldown = false;
 
-        // --- NEW: A function to reset the scanner without reloading the page ---
-        function resetScanner() {
-            // Clear the success message and buttons from the status area.
-            statusMessageEl.innerHTML = ""; 
-            
-            // Re-render the scanner. This will restart the camera and UI
-            // without needing to re-download the CSV file.
-            html5QrcodeScanner.render(onScanSuccess, onScanFailure);
-            statusMessageEl.textContent = 'Ready to scan.';
+        const statusPanel    = document.getElementById('status-panel');
+        const statusText     = document.getElementById('status-text');
+        const resultArea     = document.getElementById('result-area');
+        const assetIdDisplay = document.getElementById('asset-id-display');
+        const openDocBtn     = document.getElementById('open-doc-btn');
+        const resetBtn       = document.getElementById('reset-btn');
+
+        function setStatus(state, message, spinner = false) {
+            statusPanel.className = `state-${state}`;
+            statusText.innerHTML = spinner
+                ? `<span class="spinner"></span> ${message}`
+                : message;
+        }
+
+        function showResult(assetId, pdfUrl) {
+            assetIdDisplay.textContent = assetId;
+            openDocBtn.href = pdfUrl;
+            resultArea.classList.add('visible');
+            setStatus('success', 'Asset found.');
+        }
+
+        function hideResult() {
+            resultArea.classList.remove('visible');
+            assetIdDisplay.textContent = '';
+            openDocBtn.href = '#';
         }
 
         async function loadAssetData() {
-            statusMessageEl.textContent = 'Connecting to asset database...';
+            setStatus('loading', 'Connecting to asset database…', true);
             try {
-                const response = await fetch(GOOGLE_SHEET_CSV_URL);
-                if (!response.ok) throw new Error(`Network error: ${response.statusText}`);
-                const csvData = await response.text();
-                const rows = csvData.trim().split('\n').slice(1);
-                if (rows.length === 0) throw new Error("Asset database is empty.");
+                const response = await fetch(SHEET_CSV_URL);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+                const csv = await response.text();
+                const rows = csv.trim().split('\n').slice(1);
+                if (rows.length === 0) throw new Error('Asset database is empty.');
+
                 for (const row of rows) {
-                    const [assetId, pdfLink] = row.split(',');
-                    if (assetId && pdfLink) assetData.set(assetId.trim(), pdfLink.trim());
+                    const commaIdx = row.indexOf(',');
+                    if (commaIdx === -1) continue;
+                    const id  = row.slice(0, commaIdx).trim().replace(/^"|"$/g, '');
+                    const url = row.slice(commaIdx + 1).trim().replace(/^"|"$/g, '');
+                    if (id && url) assetData.set(id, url);
                 }
+
                 return true;
-            } catch (error) {
-                statusMessageEl.innerHTML = `<strong>Error:</strong> Could not load database.<br><button onclick="location.reload()" class="reset-button">Try Again</button>`;
-                statusMessageEl.style.color = 'red';
+            } catch (err) {
+                console.error('loadAssetData:', err);
+                statusPanel.className = 'state-error';
+                statusText.textContent = `Could not load database. ${err.message}`;
+                const retryBtn = document.createElement('button');
+                retryBtn.textContent = 'Retry';
+                retryBtn.className = 'btn btn-danger-outline';
+                retryBtn.style.marginTop = '8px';
+                retryBtn.addEventListener('click', () => location.reload());
+                statusPanel.appendChild(retryBtn);
+                return false;
+            }
+        }
+
+        function isSafeUrl(url) {
+            try {
+                const parsed = new URL(url);
+                return parsed.protocol === 'https:' || parsed.protocol === 'http:';
+            } catch {
                 return false;
             }
         }
 
         function onScanSuccess(decodedText, decodedResult) {
-            // Using "post-scan filtering" to only accept desired barcode types
-            const formatName = decodedResult.result.format.formatName;
-            if (formatName === "QR_CODE" || formatName === "DATA_MATRIX") {
-                
-                if (assetData.has(decodedText)) {
-                    const pdfUrl = assetData.get(decodedText);
-                    
-                    html5QrcodeScanner.clear().catch(error => {
-                        console.error("Failed to clear html5QrcodeScanner.", error);
-                    });
+            if (scanCooldown) return;
 
-                   
-                    statusMessageEl.innerHTML = `
-                        <div class="success-message"><strong>Asset Found:</strong> ${decodedText}</div>
-                        <a href="${pdfUrl}" class="link-button" target="_blank" rel="noopener noreferrer">Open Document</a>
-                        <button onclick="resetScanner()" class="reset-button">Scan Another Asset</button>
-                    `;
-                } else {
-                    statusMessageEl.textContent = `Asset ID "${decodedText}" not found.`;
+            const formatName = decodedResult?.result?.format?.formatName;
+            const isAccepted = formatName === 'QR_CODE' || formatName === 'DATA_MATRIX';
+
+            if (!isAccepted) {
+                 if (!scanCooldown) {
+                    scanCooldown = true;
+                    setStatus('loading', `Format "${formatName}" not supported.`);
                     setTimeout(() => {
-                        if(statusMessageEl.textContent === `Asset ID "${decodedText}" not found.`) {
-                           statusMessageEl.textContent = 'Ready to scan.';
-                        }
-                    }, 3000);
+                        setStatus('loading', 'Ready to scan.');
+                        scanCooldown = false;
+                    }, UNSUPPORTED_MSG_DURATION_MS);
                 }
+                return;
             }
-        }
-        
-        function onScanFailure(error) {
-            // Intentionally left blank.
-        }
-        const formatsToSupport = [
-          Html5QrcodeSupportedFormats.QR_CODE,Html5QrcodeSupportedFormats.DATA_MATRIX];
-async function main() {
-            const dataLoaded = await loadAssetData();
-            if (!dataLoaded) return;
 
-            statusMessageEl.textContent = 'Database loaded. Please grant camera permission.';
-            
-            html5QrcodeScanner = new Html5QrcodeScanner(
-                "qr-reader", 
-                { 
-                    fps: 60,
-                    formatsToSupport: formatsToSupport,
+            if (!assetData.has(decodedText)) {
+                if (!scanCooldown) {
+                    scanCooldown = true;
+                    setStatus('error', `ID not found in database.`);
+                    setTimeout(() => {
+                        setStatus('loading', 'Ready to scan.');
+                        scanCooldown = false;
+                    }, UNSUPPORTED_MSG_DURATION_MS);
+                }
+                return;
+            }
+
+            const pdfUrl = assetData.get(decodedText);
+
+            if (!isSafeUrl(pdfUrl)) {
+                setStatus('error', 'Unsafe URL in database — blocked.');
+                return;
+            }
+
+            scanner.clear()
+                .then(() => showResult(decodedText, pdfUrl))
+                .catch(err => {
+                    console.warn('scanner.clear():', err);
+                    showResult(decodedText, pdfUrl); // show result anyway
+                });
+        }
+
+        function onScanFailure() {
+        }
+
+        function startScanner() {
+            scanner = new Html5QrcodeScanner(
+                'qr-reader',
+                {
+                    fps: 10,
+                    formatsToSupport: ACCEPTED_FORMATS,
                     useBarCodeDetectorIfSupported: true,
-                    focusMode: "continuous",
-
-                    qrbox: (viewfinderWidth, viewfinderHeight) => {
-                        const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-                        const boxSize = Math.floor(minEdge * 0.8); // 80% of the smaller side
-                        return {
-                            width: boxSize,
-                            height: boxSize
-                        };
+                    qrbox: (w, h) => {
+                        const side = Math.floor(Math.min(w, h) * 0.8);
+                        return { width: side, height: side };
                     }
                 },
-                /* verbose= */ false
+                false
             );
-            
-            html5QrcodeScanner.render(onScanSuccess, onScanFailure);
-            statusMessageEl.textContent = 'Ready to scan.';
+            scanner.render(onScanSuccess, onScanFailure);
+            setStatus('loading', 'Ready to scan.');
+        }
+
+        function resetScanner() {
+            hideResult();
+            scanCooldown = false;
+            scanner.render(onScanSuccess, onScanFailure);
+            setStatus('loading', 'Ready to scan.');
+        }
+
+        resetBtn.addEventListener('click', resetScanner);
+
+        async function main() {
+            const ok = await loadAssetData();
+            if (!ok) return;
+            setStatus('loading', 'Database loaded. Please grant camera permission.');
+            startScanner();
         }
 
         document.addEventListener('DOMContentLoaded', main);
+
+    })();
     </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
